@@ -1,0 +1,62 @@
+/* -------------------------------------------
+ * PARAVT - PARALLEL VORONOI TESSELLATION
+ *
+ * COMPUTE VT ON LARGE PARTICLE DISTRIBUTIOINS 
+ * USING QHULL LIBRARY AND MPI.
+ * ALSO COMPUTE SEVERAL QUANTITIES AND OUTPUTS
+ * FOR ASTROPHYSICAL PURPOSES.
+ * Roberto Gonzalez -- regonzar@astro.puc.cl
+ * https://github.com/regonzar/paravt
+--------------------------------------------*/
+Version 1.0
+
+
+Check userguide.pdf for detailed code parameters.
+
+
+1-Download
+
+ https://github.com/regonzar/paravt
+
+2-Compile
+
+ Requeriments:
+ Platform: Any linux compatible. Tested on RHEL 6, Centos 6.4, Centos 7.
+ Should work in any MPI implementation, tested with OpenMPI-1.6.5+
+ 
+ Set config.h parameters
+ >make
+ 
+ After change config.h you should "make clean", then "make".
+
+3-Run
+
+ mpirun -np <Ntask> paravt <Input_File> <Format>
+ 
+ <Ntask> = number of tasks, should be a power of 2 (i.e. 2,4,8,16,32...)
+           Code run only under MPI and with Ntask >= 2
+ <Input_File> = file name of input data
+
+ <Format> = Input file format. 
+            0 = Ascii
+            1 = Binary
+            2 = Gadget 
+            3 = Rockstar
+
+4-Output
+
+ Files with names <Input_File>.<EXT> where, <EXT> can be:
+ den = density file
+ vol = voronoi cell volumes
+ nb  = neighbor number and indices
+ nb2 = neighbor data
+ VT.<Task> = Qhull raw output of voronoi structure, one file per each <Task>
+ grid = density grid
+ vtk  = VTK file of density grid for visualization porpuses
+
+5-Questions/Bugs
+
+please contact me at regonzar@astro.puc.cl.
+  
+
+
