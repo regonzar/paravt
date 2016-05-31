@@ -1,0 +1,36 @@
+----------------------------------------------
+* PARAVT - PARALLEL VORONOI TESSELLATION
+*
+* COMPUTE VT ON LARGE PARTICLE DISTRIBUTIOINS
+* USING QHULL LIBRARY AND MPI.
+* ALSO COMPUTE SEVERAL QUANTITIES AND OUTPUTS
+* FOR ASTROPHYSICAL PURPOSES.
+* Roberto Gonzalez -- regonzar@astro.puc.cl
+* https://github.com/regonzar/paravt
+----------------------------------------------
+
+1.0 (Jan 26 - 2016)
+-First release
+
+1.1 (May 31 - 2016)
+Fixes/bugs
+----------
+-Domain decomposition warn the user if boundary buffer between two tasks is
+too small for correct VT computation. Such cases can happen in extremely
+anisotropic/clustered particle distributions, and user should increase
+BORDERFACTOR to solve this.
+-Warning if number of boundary particles is larger than the number of
+particles. In this case BORDERFACTOR is too large or parallelization reach
+granularity and number of tasks must be reduced.
+
+New features
+------------
+-Code computes density gradient vectors over each particle using VT structure.
+
+-New configuration parameter AUTOBORDER: increase the boundary thickness
+automatically between two tasks, it start from BORDERFACTOR until the number 
+of particles reach the average number of particles expected in the inital 
+boundary layer. This may be useful for uneven particle distribution, but consumes
+more time and in some cases may over-estimate the required boundary layer for 
+correct VT computation. 
+
