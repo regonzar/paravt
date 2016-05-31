@@ -9,7 +9,8 @@
 #include <mpi.h>
 #include <float.h>
 
-#define sqr(x) ((x)*(x))
+#define MAXGNB 300 /*used in gradient function*/
+
 
 int nadj, nadjpos;		/*number of facets */
 int *adj, *adji;		/*facets and facet index */
@@ -22,7 +23,9 @@ int *neignum;			/*number of neighbors each particles */
 int *neigind;			/*position in neighbors array where particle's neighbors begin */
 float *vol;
 float *rho;
-
+float *grad;
+int nbrank;
+int *neigborsg;               /*array ids of neighbors for gradient computation*/
 
 
 /*Uses Qhull to compute Voronoi Tessellation*/
@@ -397,6 +400,10 @@ computeneig (void)
      ThisTask, nfacets, nvertex, nadjpos, nmax);
 
   neigbors = malloc (nsum * sizeof (int));
+
+#ifdef COMPUTEGRAD
+  neigborsg = malloc (nsum * sizeof (int));
+#endif
   for (i = 0; i < num; i++)
     neignum[i] = 0;
   for (i = 0; i < nfacets; i++)
@@ -416,6 +423,9 @@ computeneig (void)
 
   for (i = 0; i < nsum; i++)	/*reordenamos indices vecinos a valores absolutos */
     {
+#ifdef COMPUTEGRAD
+      neigborsg[i]= neigbors[i];
+#endif    
       in = neigbors[i];
       neigbors[i] = locind[in];
     }
@@ -550,3 +560,74 @@ computedens (void)
   free (zv);
 
 }
+
+
+void 
+computegrad (void)        /* Gradient computation*/
+{
+int i,j,num,nne,ik,ij,dimin,dimax;
+float xk[MAXGNB],yk[MAXGNB],zk[MAXGNB],denv[MAXGNB];
+float divmin,divmax;
+double mx,my,mz,b,r;
+
+num = NumThis + NumThisb;
+grad = malloc (3 * NumThis * sizeof(float));
+//nbrank = malloc (num * sizeof(int));
+
+xk[0]=0.;
+yk[0]=0.;
+zk[0]=0.;
+for (i=0;i< NumThis;i++)
+  {
+    nne = neignum[i];
+    if (nne < 1) printf("Particle with no neighbors!!!\n",i);
+    denv[0]=rho[i];
+    dimin=0; 
+    dimax=0;
+    divmin=rho[i];
+    divmax=rho[i];
+    for (j=0;j< nne;j++)
+    {
+     ik = neigind[i]+j;
+     ij = neigborsg[ik]; 
+     xk[j+1]=pos[3*ij]-pos[3*i];
+     yk[j+1]=pos[3*ij+1]-pos[3*i +1];
+     zk[j+1]=pos[3*ij+2]-pos[3*i +2];
+     denv[j+1]=rho[ij];
+     if (rho[ij] > divmax) {
+        dimax=j+1;
+        divmax=rho[ij];
+        }
+     if (rho[ij] < divmin) {
+        dimin=j+1;
+        divmin=rho[ij];
+        }
+    /*printf("-- %d %d %f %f %f %g\n",j,nne,xk[j+1],yk[j+1],zk[j+1],denv[j+1]);*/
+    }
+
+  //nbrank[i]=dimax+1; /*largest density neighbor index nbrank[i]-2 */
+  //if (dimax == 0) nbrank[i]=1; /* maxima */
+  //if (dimin == 0) nbrank[i]=0; /* minimum */
+  /*tenemos pos y dens de vecinos, ahora fit lineal en cada direccion */
+
+  if (linreg(nne+1,xk,denv,&mx,&b,&r)==0) mx=0;
+  grad[3*i]=(float) mx;
+  if (linreg(nne+1,yk,denv,&my,&b,&r)==0) my=0;
+  grad[3*i+1]=(float) my;
+  if (linreg(nne+1,zk,denv,&mz,&b,&r)==0) mz=0;
+  grad[3*i+2]=(float) mz;
+  /*printf(">> %d %d %g %g %g %g\n",i,NumThis,mx,my,mz,b);*/
+
+  }/*i*/
+
+}
+
+
+
+
+
+
+
+
+
+

@@ -8,8 +8,9 @@
  * Roberto Gonzalez -- regonzar@astro.puc.cl
  * https://github.com/regonzar/paravt
 --------------------------------------------*/
-Version 1.0
+Version 1.1
 
+Check Changelog.txt for version changes.
 
 Check userguide.pdf for detailed code parameters.
 
@@ -53,6 +54,7 @@ Check userguide.pdf for detailed code parameters.
  VT.<Task> = Qhull raw output of voronoi structure, one file per each <Task>
  grid = density grid
  vtk  = VTK file of density grid for visualization porpuses
+ grad = density gradient vectors
 
 5-Questions/Bugs
 

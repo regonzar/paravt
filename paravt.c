@@ -63,6 +63,8 @@ main (int argc, char *argv[])
   printf ("Task=%d NumThis=%d NumThis_boundary=%d\n", ThisTask, NumThis,
 	  NumThisb);
 
+  if (NumThisb > NumThis) printf ("%s",warning2);
+
   /*run vt */
 #ifndef LOWMEMORY
   runvt ();
@@ -80,10 +82,16 @@ main (int argc, char *argv[])
   if (ThisTask == 0)
     printf ("Neighbors complete.\n");
 #endif
-  computedens ();		/* Desnsit computation */
+  computedens ();		/* Density computation */
 #ifdef VERBOSE
   if (ThisTask == 0)
     printf ("Density and Volume complete.\n");
+#endif
+
+#ifdef COMPUTEGRAD
+ computegrad ();   	        /*VT gradient computation*/
+  if (ThisTask == 0)
+    printf ("Gradient complete.\n");
 #endif
   t5 = MPI_Wtime ();
   MPI_Barrier (MPI_COMM_WORLD);
@@ -98,6 +106,17 @@ main (int argc, char *argv[])
   if (ThisTask == 0)
     printf ("volumes...");
   savedata (1);			/*gather and save volumes */
+#endif
+
+#ifdef COMPUTEGRAD
+  if (ThisTask == 0)
+    printf ("gradient...");
+  savedata (3);                 /*gather and save gradient x */
+  savedata (4);
+  savedata (5);
+#endif
+
+#ifdef WRITEDENSITY
   writedensclose ();
 #endif
 
@@ -120,6 +139,7 @@ main (int argc, char *argv[])
     }
 #endif
   t7 = MPI_Wtime ();
+  MPI_Barrier (MPI_COMM_WORLD);
   if (ThisTask == 0)
     printf
       ("Time Stats: Read=%.2f Bdry=%.2f Comp=%.2f Write=%.2f Tot-I/O=%.2F Tot=%.2f\n",

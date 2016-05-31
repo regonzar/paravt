@@ -14,6 +14,10 @@ extern int *neignum;		/*number of neighbors each particles */
 extern int *neigind;		/*position in neighbors array where particle's neighbors begin */
 extern float *vol;
 extern float *rho;
+extern float *grad;
+extern int nbrank;
+
+extern int *neigborsg;           /*array ids of neighbors for gradient computation only */
 
 void runvt (void);
 
@@ -24,3 +28,5 @@ int qh_eachvoronoi_mod (qhT * qh, FILE * fp, printvridgeT printvridge,
 void computeneig (void);
 
 void computedens (void);
+
+void computegrad (void);

@@ -11,3 +11,7 @@ void setbordersize (void);
 void selectborder (int direction);	/*0 x-, 1 x+, 2 y-, 3 y+, 4 z-, 5 z+ */
 int checkgrid (void);
 void computegrid (void);
+
+//inline static float sqr(float x);
+int linreg(int n, const float x[], const float y[], double* m, double* b, double* r);
+

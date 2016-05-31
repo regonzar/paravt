@@ -1,8 +1,15 @@
 /* Global variables*/
 #include <stdio.h>
 
-#define PARAVTVERSION "1.0"	/*current version */
+#define PARAVTVERSION "1.1"	/*current version */
 #define MAX_FILELEN 200		/*max number characters filename */
+#define MIN_BDENSITY 0.3        /*minimum boundary region density in terms of average density */
+                                /*used only for AUTOBORDER, valid range ]0,1[ */
+
+#define warning2 "WARNING! the number of boundary particles is larger than task particles.\n This lead to poor performace, it may be produced by number of tasks too large,\n or BORDERSIZE too large."
+                                /*used only for warning purpose*/
+
+#define sqr(x) ((x)*(x)) 
 
 extern int ThisTask;		/*local task */
 extern int NTask;		/*total number of tasks */
@@ -34,7 +41,7 @@ extern FILE *fileneig;		/*output neigbors File */
 extern FILE *fileneig2;		/*output neigbors indices File */
 extern FILE *filegrid;		/*output grid File */
 extern FILE *filegrid2;		/*output grid file 2 */
-
+extern FILE *filegrad;          /*output gradient file*/
 
 
 extern float *buffer;		/*Read buffer */
@@ -45,6 +52,8 @@ extern int *locind;		/*index part. for local buffer each task */
 extern int stopit;
 
 extern float minrho;
+
+extern float pdensity;          /*particle density*/
 
 /*! Header for the standard file format.
  *  */

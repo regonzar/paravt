@@ -7,6 +7,10 @@
 #include "vars.h"
 #include "vt.h"
 
+//inline static float sqr(float x) {
+//        return x*x;
+//    }
+
 void
 stopcode (void)
 {
@@ -97,6 +101,10 @@ check_params (int argc, char *argv[])
 #undef PERIODIC
 #endif
 
+#if defined(COMPUTEGRAD) && !defined(WRITEDENSITY)
+  if (ThisTask == 0)
+    printf ("WRITEDENSITY MUST BE ENABLED IN COMPUTEGRAD OPTION, PLEASE CHANGE IT.\n");
+#endif
 
 }
 
@@ -183,7 +191,10 @@ finalize (void)
 #endif
   free (vol);
   free (rho);
-
+#ifdef COMPUTEGRAD
+  free (grad);
+  free (neigborsg);
+#endif
   free (neignum);
   free (neigbors);
   free (neigind);
@@ -222,13 +233,15 @@ setbordersize (void)
   float partdist;
 #ifdef BOX
   partdist = pow (lbox * lbox * lbox / NumPart, 0.333);
+  pdensity = NumPart/(lbox * lbox * lbox);
 #else
   partdist = pow (lboxx * lboxy * lboxz / NumPart, 0.333);
+  pdensity = NumPart/(lboxx * lboxy * lboxz);
 #endif
   bsize = partdist * BORDERFACTOR;
 #ifdef VERBOSE
   if (ThisTask == root)
-    printf ("Border size=%f\n", bsize);
+    printf ("Border size=%f , density=%f\n", bsize,pdensity);
 #endif
 }
 
@@ -236,7 +249,7 @@ void
 selectborder (int direction)
 {
   float xmin1, ymin1, zmin1, xmax1, ymax1, zmax1;
-  float thr;
+  float thr,bvolume,bbsize;
   int i, count, TaskSend, Nsend, Nrec, tag, TaskRec;
   int ii, jj, kk, ii2, jj2, kk2;
   float offx, offy, offz;
@@ -266,6 +279,13 @@ selectborder (int direction)
   if (direction == 5)
     thr = zmax1 - bsize;
   count = 0;
+
+  if ((direction == 0)||(direction == 1))
+    bvolume=dy*dz*bsize;
+  if ((direction == 2)||(direction == 3))
+    bvolume=dx*dz*bsize;
+  if ((direction == 4)||(direction == 5))
+    bvolume=dx*dy*bsize;
 
 #ifdef MULTIMASS
   bufrank = 4;
@@ -326,6 +346,95 @@ selectborder (int direction)
 	    }
 	}
     }
+
+/*check if boundary region has enough particles*/
+#ifndef AUTOBORDER
+if (count/bvolume < MIN_BDENSITY*pdensity) 
+  printf("WARNING! TOO FEW BORDER PARTICLES, increase BORDERFACTOR or change domain decomposition scheme.\n Task=%3d Direction=%1d Npthis=%d Nborder=%d density=%f pdensity=%f\n",ThisTask,direction,NumThis,count,count/bvolume,pdensity);
+#endif
+
+#ifdef AUTOBORDER
+if (count/bvolume < MIN_BDENSITY*pdensity ) {
+printf("AUTOBODER: increasing boundary for task %d, direction=%d\n boundary particles found=%d --- minimum expected=%.0f\n",ThisTask,direction,count,MIN_BDENSITY*pdensity*bvolume);
+if (ThisTask==0){
+  if (BORDERFACTOR < 1.0) printf("Warning: BORDERFACTOR in AUTOBORDER mode should be larger than 1.0!!!\n");
+  if (MIN_BDENSITY > 1.0) printf("Warning: MIN_BDENSITY must be lower than 1.0!!!\n");
+  }
+
+bbsize=bsize;
+while ((count < MIN_BDENSITY*pdensity*bvolume)&&(bbsize < 0.5*dx)) {
+  bbsize=bbsize*1.2;
+  if (direction == 0)
+    thr = xmin1 + bbsize;
+  if (direction == 1)
+    thr = xmax1 - bbsize;
+  if (direction == 2)
+    thr = ymin1 + bbsize;
+  if (direction == 3)
+    thr = ymax1 - bbsize;
+  if (direction == 4)
+    thr = zmin1 + bbsize;
+  if (direction == 5)
+    thr = zmax1 - bbsize;
+  count = 0;
+  for (i = 0; i < NumThis; i++)
+    {
+      member[i] = 0;
+      if (direction == 0)
+        {
+          if (locbuffer[i * bufrank] < thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+      if (direction == 1)
+        {
+          if (locbuffer[i * bufrank] > thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+      if (direction == 2)
+        {
+          if (locbuffer[i * bufrank + 1] < thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+      if (direction == 3)
+        {
+          if (locbuffer[i * bufrank + 1] > thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+      if (direction == 4)
+        {
+          if (locbuffer[i * bufrank + 2] < thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+      if (direction == 5)
+        {
+          if (locbuffer[i * bufrank + 2] > thr)
+            {
+              member[i] = 1;
+              count++;
+            }
+        }
+    }
+
+}/* end while*/
+printf("New number of particles task %d: %d -- boundary expanded a factor of %.1f \n",ThisTask,count,bbsize/bsize);
+
+} /*autoborder*/
+#endif
 
 /*Define who send/receive and Nparticles send/receive*/
   Nsend = count;		/*particles to send this task */
@@ -736,3 +845,39 @@ computegrid (void)
     printf ("Grid complete.\n");
 #endif
 }
+
+int linreg(int n, const float x[], const float y[], double* m, double* b, double* r)
+{
+ int i;
+ double denom;
+
+ double   sumx = 0.0;                        /* sum of x                      */
+ double   sumx2 = 0.0;                       /* sum of x**2                   */
+ double   sumxy = 0.0;                       /* sum of x * y                  */
+ double   sumy = 0.0;                        /* sum of y                      */
+ double   sumy2 = 0.0;                       /* sum of y**2                   */
+
+       for (i=0;i<n;i++)   
+          { 
+          sumx  += x[i];       
+          sumx2 += sqr(x[i]);  
+          sumxy += x[i] * y[i];
+          sumy  += y[i];      
+          sumy2 += sqr(y[i]); 
+          } 
+
+       denom = (n * sumx2 - sqr(sumx));
+       if (denom == 0) {
+            *m = 0;
+            *b = 0;
+            if (r) *r = 0;
+            return 0;
+          }
+          *m = (n * sumxy  -  sumx * sumy) / denom;
+          *b = (sumy * sumx2  -  sumx * sumxy) / denom;
+          if (r!=NULL) {
+             *r = (sumxy - sumx * sumy / n) / sqrt((sumx2 - sqr(sumx)/n) * (sumy2 - sqr(sumy)/n)); 
+             }
+          return 1;         
+             
+}                                                

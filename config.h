@@ -18,7 +18,10 @@
 #define GADGET_PTYPE 1
 #define QHULLOPTIONS "QJ"
 /*#define LOWMEMORY*/
-/*#define VERBOSE*/
+#define VERBOSE
+/*#define COMPUTEGRAD*/
+/*#define AUTOBORDER*/
+
 
 /* DOMAINTYPE: Domain decomposition strategy
  * For box volumes and periodic 0 is recommended,
@@ -66,4 +69,15 @@
  * doubles execution time.
  *
  * VERBOSE: write additional info on screen
+ * 
+ * COMPUTEGRAD: Compute density gradient vectors on VT, write 
+ * if WRITEDENSITY defined.
+ *
+ * AUTOBORDER: Automatically increase boundary particles thickness (given 
+ * initially by BORDERFACTOR) between two tasks, in the case there are too 
+ * few boundary particles for correct VT computation. This paremeter may 
+ * be helpful for very anisotropic particle distribution, but it takes more
+ * computation time. If your data is well behaved with a given BORDERFACTOR, 
+ * set this parameter off. It requires BORDERFACTOR > 1.
+ *  
  * */

@@ -34,7 +34,7 @@ FILE *fileneig;			/*output neigbors File */
 FILE *fileneig2;		/*output neigbors indices File */
 FILE *filegrid;			/*output grid File */
 FILE *filegrid2;		/*output grid file 2 */
-
+FILE *filegrad;                 /*output gradient file*/
 
 float *buffer;			/*Read buffer */
 int *member;			/*save cell location for each particle */
@@ -44,6 +44,8 @@ int *locind;			/*index part. for local buffer each task */
 int stopit;
 
 float minrho;
+
+float pdensity;          /*particle density*/
 
 /*! Header for the standard file format.
  *  */

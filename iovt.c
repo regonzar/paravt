@@ -897,6 +897,8 @@ savedata (int dtype)
 	    sdata = malloc (nthis * sizeof (float));
 	  if (dtype == 1)
 	    sdata = malloc (nthis * sizeof (float));
+          if (dtype >= 3)
+            sdata = malloc (nthis * sizeof (float));
 	  if (dtype == 2)
 	    sdata2 = malloc (nthis * sizeof (int));
 	  sidata = malloc (nthis * sizeof (int));
@@ -909,6 +911,12 @@ savedata (int dtype)
 		    sdata[in1] = rho[i];
 		  if (dtype == 1)
 		    sdata[in1] = vol[i];
+                  if (dtype == 3)
+                    sdata[in1] = grad[3*i]; /*grad x*/
+                  if (dtype == 4)
+                    sdata[in1] = grad[3*i+1]; /*y */
+                  if (dtype == 5)
+                    sdata[in1] = grad[3*i+2];
 		  if (dtype == 2)
 		    sdata2[in1] = neignum[i];
 		  if (dtype == 2)
@@ -973,6 +981,8 @@ savedata (int dtype)
 	    srec = malloc (isize * sizeof (float));
 	  if (dtype == 1)
 	    srec = malloc (isize * sizeof (float));
+          if (dtype >= 3)
+            srec = malloc (isize * sizeof (float));
 	  if (dtype == 2)
 	    srec2 = malloc (isize * sizeof (int));
 	  sirec = malloc (isize * sizeof (int));
@@ -1003,6 +1013,9 @@ savedata (int dtype)
 	  if (dtype == 1)
 	    MPI_Isend (sdata, nthis, MPI_FLOAT, root, tag, MPI_COMM_WORLD,
 		       &request2);
+          if (dtype >= 3)
+            MPI_Isend (sdata, nthis, MPI_FLOAT, root, tag, MPI_COMM_WORLD,
+                       &request2);
 	  if (dtype == 2)
 	    MPI_Isend (sdata2, nthis, MPI_INT, root, tag, MPI_COMM_WORLD,
 		       &request2);
@@ -1028,6 +1041,8 @@ savedata (int dtype)
 		    stemp = malloc (nro * sizeof (float));
 		  if (dtype == 1)
 		    stemp = malloc (nro * sizeof (float));
+                  if (dtype >= 3)
+                    stemp = malloc (nro * sizeof (float));
 		  if (dtype == 2)
 		    stemp2 = malloc (nro * sizeof (int));
 		  if (dtype == 2)
@@ -1044,6 +1059,9 @@ savedata (int dtype)
 		  if (dtype == 1)
 		    MPI_Irecv (stemp, nro, MPI_FLOAT, i, tag, MPI_COMM_WORLD,
 			       &request2);
+                  if (dtype >= 3)
+                    MPI_Irecv (stemp, nro, MPI_FLOAT, i, tag, MPI_COMM_WORLD,
+                               &request2);
 		  if (dtype == 2)
 		    MPI_Irecv (stemp2, nro, MPI_INT, i, tag, MPI_COMM_WORLD,
 			       &request2);
@@ -1071,6 +1089,9 @@ savedata (int dtype)
 		      sirec[id - istart] = id;	/*redundant - keep for debug */
 		      if (dtype < 2)
 			srec[id - istart] = stemp[j];
+                      if (dtype >= 3)
+                        srec[id - istart] = stemp[j];
+
 		      if (dtype == 2)
 			{
 			  srec2[id - istart] = stemp2[j];	/*nneig */
@@ -1150,6 +1171,24 @@ savedata (int dtype)
 		}
 #endif
 	    }
+
+          if (dtype >= 3)
+            {
+#ifdef WRITEASCII
+              if (iloop == 0)
+                fprintf (filegrad, "%d\n", NumPart);
+              for (i = 0; i < isize; i++)
+                fprintf (filegrad, "%10.4g\n", srec[i]);
+#else
+              if (iloop == 0)
+                fwrite (&NumPart, sizeof (int), 1, filegrad);
+              if (fwrite (srec, sizeof (float), isize, filegrad) != isize)
+                {
+                  printf ("Error writing gradient.\n");
+                }
+#endif
+            }
+
 
 	  if (dtype == 2)
 	    {
@@ -1248,6 +1287,7 @@ writedensopen (void)
 #ifdef VERBOSE
       printf ("Density write in file:%s\n", filename);
 #endif
+
       sprintf (filename, "%s.vol", InputFile);
       if ((filevol = fopen (filename, wmode)) == NULL)
 	{
@@ -1257,6 +1297,17 @@ writedensopen (void)
 #ifdef VERBOSE
       printf ("Volume write in file:%s\n", filename);
 #endif
+
+#ifdef COMPUTEGRAD
+      sprintf (filename, "%s.grad", InputFile);
+      if ((filegrad = fopen (filename, wmode)) == NULL)
+        {
+          printf ("Fail open gradient file...\n");
+          stopcode ();
+        }
+      printf ("Gradient write in file:%s\n", filename);
+#endif
+
     }
   check_stop ();
 
@@ -1270,6 +1321,11 @@ writedensclose (void)
     fclose (fileden);
   if (ThisTask == root)
     fclose (filevol);
+#ifdef COMPUTEGRAD
+  if (ThisTask == root)
+    fclose (filegrad);
+#endif
+
 }
 
 /*neigbors files*/
